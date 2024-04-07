@@ -12,6 +12,10 @@
 
 #include <discord_rpc.h>
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
 #define EXPORT __attribute__((visibility("default")))
 #define APPLICATION_ID "484736379171897344"
 
@@ -84,7 +88,7 @@ void title_changed() {
             fullTitle = title.substr(0, 127);
         }
 
-        playingStatus = paused ? "Paused" : "Listening";
+        playingStatus = paused ? "Paused" : "Playing";
 
         presence.details = fullTitle.c_str();
         presence.smallImageKey = paused ? "pause" : "play";

@@ -3,6 +3,8 @@ cmake_install.cmake
 CMakeFiles
 Makefile
 
+thirdparty
+
 build
 
 *.so
