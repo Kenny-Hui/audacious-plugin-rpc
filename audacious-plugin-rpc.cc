@@ -20,6 +20,7 @@
 #define APPLICATION_ID "484736379171897344"
 
 static const char *SETTING_EXTRA_TEXT = "extra_text";
+static const char *SETTING_USE_PLAYING = "use_playing";
 
 class RPCPlugin : public GeneralPlugin {
 
@@ -78,6 +79,7 @@ void title_changed() {
 
     if (aud_drct_get_playing()) {
         bool paused = aud_drct_get_paused();
+        bool usePlayingStatus = aud_get_bool(SETTING_USE_PLAYING);
         Tuple tuple = aud_drct_get_tuple();
         String artist = tuple.get_str(Tuple::Artist);
         std::string title(tuple.get_str(Tuple::Title));
@@ -89,7 +91,8 @@ void title_changed() {
         }
 
         playingStatus = paused ? "Paused" : "Playing";
-
+            
+        presence.type = usePlayingStatus ? 0 : 2;
         presence.details = fullTitle.c_str();
         presence.smallImageKey = paused ? "pause" : "play";
     } else {
@@ -142,6 +145,10 @@ const PreferencesWidget RPCPlugin::widgets[] =
   WidgetEntry(
       N_("Extra status text:"),
       WidgetString("audacious-plugin-rpc", SETTING_EXTRA_TEXT, title_changed)
+  ),
+  WidgetCheck(
+      N_("Use \"Playing\" status instead of \"Listening to\":"),
+      WidgetBool(0, SETTING_USE_PLAYING)
   ),
   WidgetButton(
       N_("Fork on GitHub"),
