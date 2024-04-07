@@ -120,6 +120,10 @@ void title_changed() {
         bool usePlayingStatus = aud_get_bool(SETTING_USE_PLAYING);
         Tuple tuple = aud_drct_get_tuple();
         String artist = tuple.get_str(Tuple::Artist);
+        String album = tuple.get_str(Tuple::Album);
+        String albumArtist = tuple.get_str(Tuple::AlbumArtist);
+        if(NULL == albumArtist) albumArtist = artist;
+        
         std::string title(tuple.get_str(Tuple::Title));
         fullTitle = title.substr(0, 127);
         
@@ -128,6 +132,7 @@ void title_changed() {
         presence.details = fullTitle.c_str();
         presence.smallImageKey = paused ? "pause" : "play";
         presence.smallImageText = paused ? "Paused" : "Playing";
+        presence.largeImageText = album;
         
         if(usePlayingStatus) {
             presence.button1text = "";
