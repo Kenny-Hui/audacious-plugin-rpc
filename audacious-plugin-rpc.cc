@@ -14,15 +14,20 @@
 
 #include <discord_rpc.h>
 
+#include "HTTPRequest.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
 #define EXPORT __attribute__((visibility("default")))
 #define APPLICATION_ID "484736379171897344"
+#define MUSICBRAINZ_UA "Application audacious+fork/4.3.1 ( kenny.mh.hui@outlook.com )"
 
+static const char *SETTING_ALBUM_BUTTON = "show_album_button";
 static const char *SETTING_EXTRA_TEXT = "extra_text";
+static const char *SETTING_SHOW_COVER_ART = "show_cover_art";
 static const char *SETTING_USE_PLAYING = "use_playing";
+static const char *SETTING_USE_THREADING = "use_threading";
 
 class RPCPlugin : public GeneralPlugin {
 
@@ -48,6 +53,7 @@ EXPORT RPCPlugin aud_plugin_instance;
 
 DiscordEventHandlers handlers;
 DiscordRichPresence presence;
+std::string albumKeyword;
 std::string fullTitle;
 std::string playingStatus;
 
@@ -70,7 +76,7 @@ std::string get_ascii_player_art() {
     for(int i = 0; i < 19; i++) {
         if(i / 19.0 <= prg) {
             if((i+1) / 19.0 > prg) {
-                str.append("●");
+                str.append(">");
             } else {
                 str.append("=");
             }
@@ -86,6 +92,53 @@ std::string get_ascii_player_art() {
     str.append(std::to_string(fullSec));
 
     return str;
+}
+
+std::string encode_url(std::string input) {
+    for(int i=0 ; i<input.length() ; i++) {
+        if(input[i] == ' ') input.replace(i, 1, "%20");
+    }
+    return input;
+}
+
+const void update_album_info(String album, String albumArtist) {
+    http::Request request{"http://musicbrainz.org/ws/2/release?query=artist:" + encode_url(std::string(albumArtist).append(" AND ").append(album)) + "&fmt=json&limit=1"};
+    const auto response = request.send("GET", "", {{"User-Agent", MUSICBRAINZ_UA}});
+    std::string resp = std::string{response.body.begin(), response.body.end()};
+    
+    rapidjson::Document d;
+    d.Parse(resp.c_str());
+    
+    const rapidjson::Value& releases = d["releases"];
+    if(releases.Size() == 0) {
+        presence.largeImageKey = "logo"; // No release found
+        presence.button2text = "";
+        presence.button2url = "";
+    } else {
+        std::string mbid = releases[0]["id"].GetString();
+        
+        if(aud_get_bool(SETTING_SHOW_COVER_ART)) {
+            std::string coverUrl = std::string("http://coverartarchive.org/release/").append(mbid);
+            http::Request coverReq{coverUrl};
+            const auto coverResp = coverReq.send("GET", "", {{"User-Agent", MUSICBRAINZ_UA}});
+            
+            if(coverResp.status.code > 307) {
+                presence.largeImageKey = "logo"; // Can't get cover art
+            } else {
+                presence.largeImageKey = strdup(coverUrl.append("/front").c_str());
+            }
+        } else {
+            presence.largeImageKey = "logo";
+        }
+        
+        if(aud_get_bool(SETTING_ALBUM_BUTTON)) {
+            presence.button2text = "View Album";
+            presence.button2url = strdup(std::string("https://musicbrainz.org/release/").append(mbid).c_str());
+        } else {
+            presence.button2text = "";
+            presence.button2url = "";
+        }
+    }
 }
 
 void init_discord() {
@@ -154,6 +207,15 @@ void title_changed() {
             presence.button1text = strdup(get_ascii_player_art().c_str());
             presence.button1url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
         }
+        
+        if(album && albumArtist) {
+            std::string newAlbumKeyword = std::string(album).append(";").append(albumArtist);
+            
+            if(albumKeyword != newAlbumKeyword && (aud_get_bool(SETTING_SHOW_COVER_ART) || aud_get_bool(SETTING_ALBUM_BUTTON))) {
+                albumKeyword = newAlbumKeyword;
+                update_album_info(album, albumArtist);
+            }
+        }
     } else {
         Discord_ClearPresence();
     }
@@ -166,7 +228,15 @@ void title_changed() {
 }
 
 void update_title_presence(void*, void*) {
-    title_changed();
+    bool useThreading = aud_get_bool(SETTING_USE_THREADING);
+    
+    if(useThreading) {
+        std::thread* t = new std::thread(title_changed); // I saw something something about not thread-safe in the audacious src code, let's hope for the best ^_^;
+        t->detach();
+        delete t;
+    } else {
+        title_changed();
+    }
 }
 
 /* Listening require an extra playback bar that needs to be constantly updated */
@@ -194,6 +264,7 @@ bool RPCPlugin::init() {
     hook_associate("playback stop", update_title_presence, nullptr);
     hook_associate("playback pause", update_title_presence, nullptr);
     hook_associate("playback unpause", update_title_presence, nullptr);
+    hook_associate("playback seek", update_title_presence, nullptr);
     hook_associate("title change", update_title_presence, nullptr);
     std::thread t(update_ascii_player);
     t.detach();
@@ -206,6 +277,7 @@ void RPCPlugin::cleanup() {
     hook_dissociate("playback stop", update_title_presence);
     hook_dissociate("playback pause", update_title_presence);
     hook_dissociate("playback unpause", update_title_presence);
+    hook_dissociate("playback seek", update_title_presence);
     hook_dissociate("title change", update_title_presence);
     cleanup_discord();
 }
@@ -219,8 +291,20 @@ const PreferencesWidget RPCPlugin::widgets[] =
       WidgetString("audacious-plugin-rpc", SETTING_EXTRA_TEXT, title_changed)
   ),
   WidgetCheck(
+      N_("Show \"View Album\" button (Musicbrainz)"),
+      WidgetBool(0, SETTING_ALBUM_BUTTON)
+  ),
+  WidgetCheck(
+      N_("Show Cover Art (Musicbrainz)"),
+      WidgetBool(0, SETTING_SHOW_COVER_ART)
+  ),
+  WidgetCheck(
       N_("Use \"Playing\" status instead of \"Listening to\":"),
       WidgetBool(0, SETTING_USE_PLAYING)
+  ),
+  WidgetCheck(
+      N_("Use threading when fetching song info"),
+      WidgetBool(0, SETTING_USE_THREADING)
   ),
   WidgetButton(
       N_("Fork on GitHub"),
