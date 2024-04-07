@@ -83,22 +83,18 @@ void title_changed() {
         Tuple tuple = aud_drct_get_tuple();
         String artist = tuple.get_str(Tuple::Artist);
         std::string title(tuple.get_str(Tuple::Title));
-
-        if (artist) {
-            fullTitle = (std::string(artist) + " - " + title).substr(0, 127);
-        } else {
-            fullTitle = title.substr(0, 127);
-        }
-
-        playingStatus = paused ? "Paused" : "Playing";
-            
+        fullTitle = title.substr(0, 127);
+        
+        playingStatus = std::string("by ").append(artist);
         presence.type = usePlayingStatus ? 0 : 2;
         presence.details = fullTitle.c_str();
         presence.smallImageKey = paused ? "pause" : "play";
+        presence.smallImageText = paused ? "Paused" : "Playing";
     } else {
         playingStatus = "Stopped";
         presence.state = "Stopped";
         presence.smallImageKey = "stop";
+        presence.smallImageText = "Stopped";
     }
 
     std::string extraText(aud_get_str("audacious-plugin-rpc", SETTING_EXTRA_TEXT));
