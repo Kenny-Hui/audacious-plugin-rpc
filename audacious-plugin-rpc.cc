@@ -149,10 +149,7 @@ void title_changed() {
             presence.button1url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
         }
     } else {
-        playingStatus = "Stopped";
-        presence.state = "Stopped";
-        presence.smallImageKey = "stop";
-        presence.smallImageText = "Stopped";
+        Discord_ClearPresence();
     }
 
     std::string extraText(aud_get_str("audacious-plugin-rpc", SETTING_EXTRA_TEXT));
