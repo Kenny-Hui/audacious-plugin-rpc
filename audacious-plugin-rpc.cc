@@ -1,5 +1,6 @@
-#include <iostream>
 #include <chrono>
+#include <iostream>
+#include <thread>
 #include <string.h>
 
 #include <libaudcore/drct.h>
@@ -168,6 +169,19 @@ void update_title_presence(void*, void*) {
     title_changed();
 }
 
+/* Listening require an extra playback bar that needs to be constantly updated */
+void update_ascii_player() {
+    while(true) {
+        bool usePlaying = aud_get_bool(SETTING_USE_PLAYING);
+        
+        if(!usePlaying) { 
+            title_changed();
+        }
+        
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+}
+
 void open_github() {
    system("xdg-open https://github.com/darktohka/audacious-plugin-rpc");
 }
@@ -181,6 +195,8 @@ bool RPCPlugin::init() {
     hook_associate("playback pause", update_title_presence, nullptr);
     hook_associate("playback unpause", update_title_presence, nullptr);
     hook_associate("title change", update_title_presence, nullptr);
+    std::thread t(update_ascii_player);
+    t.detach();
     return true;
 }
 
