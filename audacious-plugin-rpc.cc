@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <string.h>
 
 #include <libaudcore/drct.h>
@@ -49,6 +50,43 @@ DiscordRichPresence presence;
 std::string fullTitle;
 std::string playingStatus;
 
+std::string get_ascii_player_art() {
+    double prg = (double)aud_drct_get_time() / (double)aud_drct_get_length();
+    int sec = (int)(aud_drct_get_time() / 1000.0);
+    int min = (int)(sec / 60);
+    int fullSec = (int)(aud_drct_get_length() / 1000.0);
+    int fullMin = (int)(fullSec / 60);
+    sec = sec % 60;
+    fullSec = fullSec % 60;
+    
+    std::string str = "";
+    str.append(std::to_string(min));
+    str.append(":");
+    if(sec < 10) str.append("0");
+    str.append(std::to_string(sec));
+    str.append(" [");
+
+    for(int i = 0; i < 19; i++) {
+        if(i / 19.0 <= prg) {
+            if((i+1) / 19.0 > prg) {
+                str.append("●");
+            } else {
+                str.append("=");
+            }
+        } else {
+            str.append("-");
+        }
+    }
+
+    str.append("] ");
+    str.append(std::to_string(fullMin));
+    str.append(":");
+    if(fullSec < 10) str.append("0");
+    str.append(std::to_string(fullSec));
+
+    return str;
+}
+
 void init_discord() {
     memset(&handlers, 0, sizeof(handlers));
     Discord_Initialize(APPLICATION_ID, &handlers, 1, NULL);
@@ -90,6 +128,26 @@ void title_changed() {
         presence.details = fullTitle.c_str();
         presence.smallImageKey = paused ? "pause" : "play";
         presence.smallImageText = paused ? "Paused" : "Playing";
+        
+        if(usePlayingStatus) {
+            presence.button1text = "";
+            presence.button1url = "";
+            
+            // Timestamp
+            int remainingTimeMs = aud_drct_get_length() - aud_drct_get_time();
+            using namespace std::chrono;
+            uint64_t nowMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+            if(!paused) {
+                presence.startTimestamp = nowMs - aud_drct_get_time();
+                presence.endTimestamp = nowMs + remainingTimeMs;
+            } else {
+                presence.startTimestamp = 0;
+                presence.endTimestamp = 0;
+            }
+        } else {
+            presence.button1text = strdup(get_ascii_player_art().c_str());
+            presence.button1url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        }
     } else {
         playingStatus = "Stopped";
         presence.state = "Stopped";
