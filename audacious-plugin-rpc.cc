@@ -21,10 +21,9 @@
 
 #define EXPORT __attribute__((visibility("default")))
 #define APPLICATION_ID "484736379171897344"
-#define MUSICBRAINZ_UA "Application audacious+fork/4.3.1 ( kenny.mh.hui@outlook.com )"
+#define MUSICBRAINZ_UA "Application audacious+fork.1/4.3.1 ( kenny.mh.hui@outlook.com )"
 
 static const char *SETTING_ALBUM_BUTTON = "show_album_button";
-static const char *SETTING_EXTRA_TEXT = "extra_text";
 static const char *SETTING_SHOW_COVER_ART = "show_cover_art";
 static const char *SETTING_USE_PLAYING = "use_playing";
 static const char *SETTING_USE_THREADING = "use_threading";
@@ -164,7 +163,7 @@ void cleanup_discord() {
     Discord_Shutdown();
 }
 
-void title_changed() {
+void update_rpc() {
     if (!aud_drct_get_ready()) {
         return;
     }
@@ -220,8 +219,7 @@ void title_changed() {
         Discord_ClearPresence();
     }
 
-    std::string extraText(aud_get_str("audacious-plugin-rpc", SETTING_EXTRA_TEXT));
-    playingStatus = (playingStatus + " " + extraText).substr(0, 127);
+    playingStatus = playingStatus.substr(0, 127);
 
     presence.state = playingStatus.c_str();
     update_presence();
@@ -231,11 +229,11 @@ void update_title_presence(void*, void*) {
     bool useThreading = aud_get_bool(SETTING_USE_THREADING);
     
     if(useThreading) {
-        std::thread* t = new std::thread(title_changed); // I saw something something about not thread-safe in the audacious src code, let's hope for the best ^_^;
+        std::thread* t = new std::thread(update_rpc); // I saw something something about not thread-safe in the audacious src code, let's hope for the best ^_^;
         t->detach();
         delete t;
     } else {
-        title_changed();
+        update_rpc();
     }
 }
 
@@ -245,7 +243,7 @@ void update_ascii_player() {
         bool usePlaying = aud_get_bool(SETTING_USE_PLAYING);
         
         if(!usePlaying) { 
-            title_changed();
+            update_rpc();
         }
         
         std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -253,7 +251,7 @@ void update_ascii_player() {
 }
 
 void open_github() {
-   system("xdg-open https://github.com/darktohka/audacious-plugin-rpc");
+   system("xdg-open https://github.com/Kenny-Hui/audacious-plugin-rpc");
 }
 
 bool RPCPlugin::init() {
@@ -282,14 +280,10 @@ void RPCPlugin::cleanup() {
     cleanup_discord();
 }
 
-const char RPCPlugin::about[] = N_("Discord RPC music status plugin\n\nWritten by: Derzsi Daniel <daniel@tohka.us>");
+const char RPCPlugin::about[] = N_("Discord RPC music status plugin\n\nWritten by: Derzsi Daniel <daniel@tohka.us>\nForked by: LX86 <lx86@lx862.com>");
 
 const PreferencesWidget RPCPlugin::widgets[] =
 {
-  WidgetEntry(
-      N_("Extra status text:"),
-      WidgetString("audacious-plugin-rpc", SETTING_EXTRA_TEXT, title_changed)
-  ),
   WidgetCheck(
       N_("Show \"View Album\" button (Musicbrainz)"),
       WidgetBool(0, SETTING_ALBUM_BUTTON)
