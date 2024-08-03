@@ -102,41 +102,51 @@ std::string encode_url(std::string input) {
 
 const void update_album_info(String album, String albumArtist) {
     http::Request request{"http://musicbrainz.org/ws/2/release?query=artist:" + encode_url(std::string(albumArtist).append(" AND ").append(album)) + "&fmt=json&limit=1"};
-    const auto response = request.send("GET", "", {{"User-Agent", MUSICBRAINZ_UA}});
-    std::string resp = std::string{response.body.begin(), response.body.end()};
-    
-    rapidjson::Document d;
-    d.Parse(resp.c_str());
-    
-    const rapidjson::Value& releases = d["releases"];
-    if(releases.Size() == 0) {
-        presence.largeImageKey = "logo"; // No release found
-        presence.button2text = "";
-        presence.button2url = "";
-    } else {
-        std::string mbid = releases[0]["id"].GetString();
-        
-        if(aud_get_bool(SETTING_SHOW_COVER_ART)) {
-            std::string coverUrl = std::string("http://coverartarchive.org/release/").append(mbid);
-            http::Request coverReq{coverUrl};
-            const auto coverResp = coverReq.send("GET", "", {{"User-Agent", MUSICBRAINZ_UA}});
-            
-            if(coverResp.status.code > 307) {
-                presence.largeImageKey = "logo"; // Can't get cover art
-            } else {
-                presence.largeImageKey = strdup(coverUrl.append("/front").c_str());
-            }
-        } else {
-            presence.largeImageKey = "logo";
-        }
-        
-        if(aud_get_bool(SETTING_ALBUM_BUTTON)) {
-            presence.button2text = "View Album";
-            presence.button2url = strdup(std::string("https://musicbrainz.org/release/").append(mbid).c_str());
-        } else {
+    try {
+        const auto response = request.send("GET", "", {{"User-Agent", MUSICBRAINZ_UA}});
+        std::string resp = std::string{response.body.begin(), response.body.end()};
+
+        rapidjson::Document d;
+        d.Parse(resp.c_str());
+
+        const rapidjson::Value& releases = d["releases"];
+        if(releases.Size() == 0) {
+            presence.largeImageKey = "logo"; // No release found
             presence.button2text = "";
             presence.button2url = "";
+        } else {
+            std::string mbid = releases[0]["id"].GetString();
+
+            if(aud_get_bool(SETTING_SHOW_COVER_ART)) {
+                std::string coverUrl = std::string("http://coverartarchive.org/release/").append(mbid);
+                http::Request coverReq{coverUrl};
+                const auto coverResp = coverReq.send("GET", "", {{"User-Agent", MUSICBRAINZ_UA}});
+
+                if(coverResp.status.code > 307) {
+                    presence.largeImageKey = "logo"; // Can't get cover art
+                } else {
+                    presence.largeImageKey = strdup(coverUrl.append("/front").c_str());
+                }
+            } else {
+                presence.largeImageKey = "logo";
+            }
+
+            if(aud_get_bool(SETTING_ALBUM_BUTTON)) {
+                presence.button2text = "View Album";
+                presence.button2url = strdup(std::string("https://musicbrainz.org/release/").append(mbid).c_str());
+            } else {
+                presence.button2text = "";
+                presence.button2url = "";
+            }
         }
+    }
+    catch ( const std::system_error& e ) { // catch the error if there's no internet connection
+        std::cout << "Caught system_error in update_album_info() with code "
+        "[" << e.code() << "] meaning "
+        "[" << e.what() << "]\n";
+        presence.button2text = "";
+        presence.button2url = "";
+        presence.largeImageKey = "logo";
     }
 }
 
