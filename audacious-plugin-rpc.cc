@@ -21,7 +21,7 @@
 
 #define EXPORT __attribute__((visibility("default")))
 #define APPLICATION_ID "484736379171897344"
-#define MUSICBRAINZ_UA "Application audacious+fork.1/4.3.1 ( kenny.mh.hui@outlook.com )"
+#define MUSICBRAINZ_UA "Application audacious-plugin-rpc+fork.2 ( kenny.mh.hui@outlook.com )"
 
 static const char *SETTING_ALBUM_BUTTON = "show_album_button";
 static const char *SETTING_SHOW_COVER_ART = "show_cover_art";

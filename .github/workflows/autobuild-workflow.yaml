@@ -24,9 +24,9 @@ jobs:
       - name: Install Audacious
         shell: bash
         run: |
-          sudo apt-get -y update && sudo apt-get install -y audacious-dev
+          sudo apt-get -y update && sudo apt-get install -y audacious
       - name: Checkout code  
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure project
         shell: bash
         run: |
@@ -44,7 +44,7 @@ jobs:
         run: |
           strip -s libaudacious-plugin-rpc.so
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libaudacious-plugin-rpc
           path: libaudacious-plugin-rpc.so
