@@ -6,7 +6,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Finding Audacious
 include(FindPkgConfig)
-PKG_SEARCH_MODULE(AUDACIOUS REQUIRED audacious>=3.9)
+PKG_SEARCH_MODULE(AUDACIOUS REQUIRED audacious>=4.0)
 add_definitions(${AUDACIOUS_CFLAGS})
 
 # Building discord-rpc
