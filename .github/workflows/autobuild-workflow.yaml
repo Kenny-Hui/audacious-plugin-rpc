@@ -14,7 +14,7 @@ jobs:
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
         with:
-          version: 14
+          version: latest
           platform: x64      
       - name: Enable Clang
         shell: bash
@@ -24,7 +24,7 @@ jobs:
       - name: Install Audacious
         shell: bash
         run: |
-          sudo apt-get -y update && sudo apt-get install -y audacious-dev
+          sudo apt update && sudo apt install -y audacious-dev
       - name: Checkout code  
         uses: actions/checkout@v4
       - name: Configure project
