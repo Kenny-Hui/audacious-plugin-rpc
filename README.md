@@ -28,6 +28,10 @@ The details displayed in **Playing** and **Listening to** status may differs wit
 - (+) "Listening to" makes 10x more sense
 - (-) No countdown timer (An ASCII time bar is used with a button instead, but it has lower/unreliable update frequencies)
 
+**2024-10-11 Update**
+Discord has sinced switched to a new compact form of displaying the rich presence.  
+On Desktop Clients, buttons are now completely hidden when viewing yourself, but will still show to others.
+
 ## Installation
 1. Download the zip of the latest release in [Release](https://github.com/Kenny-Hui/audacious-plugin-rpc/releases) page.
 2. Extract the zip, and put `libaudacious-plugin-rpc.so` to /usr/lib64/audacious/General
