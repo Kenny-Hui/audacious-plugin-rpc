@@ -200,21 +200,21 @@ void update_rpc() {
         if(usePlayingStatus) {
             presence.button1text = "";
             presence.button1url = "";
-            
-            // Timestamp
-            int remainingTimeMs = aud_drct_get_length() - aud_drct_get_time();
-            using namespace std::chrono;
-            uint64_t nowMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-            if(!paused) {
-                presence.startTimestamp = nowMs - aud_drct_get_time();
-                presence.endTimestamp = nowMs + remainingTimeMs;
-            } else {
-                presence.startTimestamp = 0;
-                presence.endTimestamp = 0;
-            }
         } else {
             presence.button1text = strdup(get_ascii_player_art().c_str());
             presence.button1url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        }
+        
+        // Timestamp
+        int remainingTimeMs = aud_drct_get_length() - aud_drct_get_time();
+        using namespace std::chrono;
+        uint64_t nowMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+        if(!paused) {
+            presence.startTimestamp = nowMs - aud_drct_get_time();
+            presence.endTimestamp = nowMs + remainingTimeMs;
+        } else {
+            presence.startTimestamp = 0;
+            presence.endTimestamp = 0;
         }
         
         if(album && albumArtist) {
