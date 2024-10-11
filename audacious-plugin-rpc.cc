@@ -112,8 +112,8 @@ const void update_album_info(String album, String albumArtist) {
         const rapidjson::Value& releases = d["releases"];
         if(releases.Size() == 0) {
             presence.largeImageKey = "logo"; // No release found
-            presence.button2text = "";
-            presence.button2url = "";
+            presence.button1text = "";
+            presence.button1url = "";
         } else {
             std::string mbid = releases[0]["id"].GetString();
 
@@ -132,11 +132,11 @@ const void update_album_info(String album, String albumArtist) {
             }
 
             if(aud_get_bool(SETTING_ALBUM_BUTTON)) {
-                presence.button2text = "View Album";
-                presence.button2url = strdup(std::string("https://musicbrainz.org/release/").append(mbid).c_str());
+                presence.button1text = "View Album";
+                presence.button1url = strdup(std::string("https://musicbrainz.org/release/").append(mbid).c_str());
             } else {
-                presence.button2text = "";
-                presence.button2url = "";
+                presence.button1text = "";
+                presence.button1url = "";
             }
         }
     }
@@ -144,8 +144,8 @@ const void update_album_info(String album, String albumArtist) {
         std::cout << "Caught system_error in update_album_info() with code "
         "[" << e.code() << "] meaning "
         "[" << e.what() << "]\n";
-        presence.button2text = "";
-        presence.button2url = "";
+        presence.button1text = "";
+        presence.button1url = "";
         presence.largeImageKey = "logo";
     }
 }
@@ -196,14 +196,6 @@ void update_rpc() {
         presence.smallImageKey = paused ? "pause" : "play";
         presence.smallImageText = paused ? "Paused" : "Playing";
         presence.largeImageText = album;
-        
-        if(usePlayingStatus) {
-            presence.button1text = "";
-            presence.button1url = "";
-        } else {
-            presence.button1text = strdup(get_ascii_player_art().c_str());
-            presence.button1url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-        }
         
         // Timestamp
         int remainingTimeMs = aud_drct_get_length() - aud_drct_get_time();
