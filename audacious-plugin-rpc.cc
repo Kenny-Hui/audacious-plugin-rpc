@@ -25,7 +25,6 @@
 
 static const char *SETTING_ALBUM_BUTTON = "show_album_button";
 static const char *SETTING_SHOW_COVER_ART = "show_cover_art";
-static const char *SETTING_USE_PLAYING = "use_playing";
 static const char *SETTING_USE_THREADING = "use_threading";
 
 class RPCPlugin : public GeneralPlugin {
@@ -55,43 +54,6 @@ DiscordRichPresence presence;
 std::string albumKeyword;
 std::string fullTitle;
 std::string playingStatus;
-
-std::string get_ascii_player_art() {
-    double prg = (double)aud_drct_get_time() / (double)aud_drct_get_length();
-    int sec = (int)(aud_drct_get_time() / 1000.0);
-    int min = (int)(sec / 60);
-    int fullSec = (int)(aud_drct_get_length() / 1000.0);
-    int fullMin = (int)(fullSec / 60);
-    sec = sec % 60;
-    fullSec = fullSec % 60;
-    
-    std::string str = "";
-    str.append(std::to_string(min));
-    str.append(":");
-    if(sec < 10) str.append("0");
-    str.append(std::to_string(sec));
-    str.append(" [");
-
-    for(int i = 0; i < 19; i++) {
-        if(i / 19.0 <= prg) {
-            if((i+1) / 19.0 > prg) {
-                str.append(">");
-            } else {
-                str.append("=");
-            }
-        } else {
-            str.append("-");
-        }
-    }
-
-    str.append("] ");
-    str.append(std::to_string(fullMin));
-    str.append(":");
-    if(fullSec < 10) str.append("0");
-    str.append(std::to_string(fullSec));
-
-    return str;
-}
 
 std::string encode_url(std::string input) {
     for(int i=0 ; i<input.length() ; i++) {
@@ -180,7 +142,6 @@ void update_rpc() {
 
     if (aud_drct_get_playing()) {
         bool paused = aud_drct_get_paused();
-        bool usePlayingStatus = aud_get_bool(SETTING_USE_PLAYING);
         Tuple tuple = aud_drct_get_tuple();
         String artist = tuple.get_str(Tuple::Artist);
         String album = tuple.get_str(Tuple::Album);
@@ -191,7 +152,7 @@ void update_rpc() {
         fullTitle = title.substr(0, 127);
         
         playingStatus = std::string("by ").append(artist);
-        presence.type = usePlayingStatus ? 0 : 2;
+        presence.type = 2;
         presence.details = fullTitle.c_str();
         presence.smallImageKey = paused ? "pause" : "play";
         presence.smallImageText = paused ? "Paused" : "Playing";
@@ -239,19 +200,6 @@ void update_title_presence(void*, void*) {
     }
 }
 
-/* Listening require an extra playback bar that needs to be constantly updated */
-void update_ascii_player() {
-    while(true) {
-        bool usePlaying = aud_get_bool(SETTING_USE_PLAYING);
-        
-        if(!usePlaying) { 
-            update_rpc();
-        }
-        
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-    }
-}
-
 void open_github() {
    system("xdg-open https://github.com/Kenny-Hui/audacious-plugin-rpc");
 }
@@ -266,8 +214,6 @@ bool RPCPlugin::init() {
     hook_associate("playback unpause", update_title_presence, nullptr);
     hook_associate("playback seek", update_title_presence, nullptr);
     hook_associate("title change", update_title_presence, nullptr);
-    std::thread t(update_ascii_player);
-    t.detach();
     return true;
 }
 
@@ -293,10 +239,6 @@ const PreferencesWidget RPCPlugin::widgets[] =
   WidgetCheck(
       N_("Show Cover Art (Musicbrainz)"),
       WidgetBool(0, SETTING_SHOW_COVER_ART)
-  ),
-  WidgetCheck(
-      N_("Use \"Playing\" status instead of \"Listening to\":"),
-      WidgetBool(0, SETTING_USE_PLAYING)
   ),
   WidgetCheck(
       N_("Use threading when fetching song info"),
